@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "home_controller.h"
 #include "../../framework/view.h"
 

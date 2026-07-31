@@ -6,7 +6,7 @@
 
 /* ── Estado global ─────────────────────────────────────────────────── */
 DBDriver *g_driver = NULL;
-static Arena    *g_arena  = NULL;
+Arena    *g_arena  = NULL;
 
 void DB_set_driver(DBDriver *d) { g_driver = d; }
 void DB_set_arena(Arena *a)     { g_arena  = a; }
@@ -270,9 +270,10 @@ static DBRow *_qb_find(QueryBuilder *qb, const char *id) {
 }
 
 static DBResult *_qb_all(QueryBuilder *qb) {
-    qb->where_count = 0;
+    qb->where_count  = 0;
     qb->where_buf[0] = '\0';
-    qb->has_limit = 0;
+    qb->bind_count   = 0;
+    qb->has_limit    = 0;
     return qb->get(qb);
 }
 
@@ -297,9 +298,8 @@ static int64_t _qb_save(QueryBuilder *qb, DBRow *data) {
     } else {
         int64_t new_id = _qb_create(qb, data);
         if (new_id > 0) {
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%lld", (long long)new_id);
-            DBRow_set(data, "id", buf);
+            /* Use arena allocation — never store pointers to stack buffers in DBRow */
+            DBRow_set(data, "id", Arena_sprintf(qb->arena, "%lld", (long long)new_id));
         }
         return new_id;
     }

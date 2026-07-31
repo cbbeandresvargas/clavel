@@ -37,8 +37,10 @@
 #include "build/seeders.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <sys/stat.h>
 
 /* ── Forward declarations ──────────────────────────────────────────── */
@@ -75,7 +77,7 @@ static int _serve_static(struct mg_connection *c,
         return 1;
     }
     
-    /* Archivos dinámicos: /storage/* -> se leen del disco (storage/public) */
+    /* Archivos dinámicos: /storage/... -> se leen del disco (storage/public) */
     if (mg_match(uri, mg_str("/storage/#"), NULL)) {
         struct mg_http_serve_opts opts = { .root_dir = "storage/public" };
         
@@ -162,7 +164,7 @@ static void _mg_handler(struct mg_connection *c, int ev, void *ev_data) {
     /* ── Middlewares → Router ─────────────────────────────────────── */
     Middleware_run(&req, &res);
 
-    if (res.status == 0 || res.body == NULL) {
+    if (res.body == NULL) {
         /* El middleware no cortocircuitó — despachar al router */
         if (!Router_dispatch(&g_router, &req, &res)) {
             Response_abort(&res, 404);
@@ -242,6 +244,8 @@ int main(int argc, char *argv[]) {
             port = argv[++i];
         }
     }
+
+    srand((unsigned)time(NULL));
 
     signal(SIGINT,  _sig_handler);
     signal(SIGTERM, _sig_handler);

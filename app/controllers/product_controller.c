@@ -3,6 +3,7 @@
  * Aquí se puede apreciar la API encadenable estilo Laravel.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include "product_controller.h"
 #include "../../framework/db.h"
 #include "../../framework/view.h"

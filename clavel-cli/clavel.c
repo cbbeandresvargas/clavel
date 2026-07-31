@@ -186,7 +186,12 @@ static void generate_body(FILE *out, const char *content, size_t len,
     const char *end = content + len;
     const char *text_start = p;
 
-    (void)indent; /* reservado para anidamiento futuro */
+    (void)indent;
+
+    /* Estado para @foreach */
+    char foreach_col[64] = ""; /* nombre de la colección, ej. "products" */
+    char foreach_var[64] = ""; /* variable del loop, ej.  "product"  */
+    int  in_foreach      = 0;
 
     while (p < end) {
 
@@ -203,6 +208,20 @@ static void generate_body(FILE *out, const char *content, size_t len,
             trim(var);
             if (strcmp(var, "__slot") == 0) {
                 fprintf(out, "    StrBuf_add(_sb, _slot);\n");
+            } else if (in_foreach) {
+                /* Dentro de @foreach: {{ item.field }} → lookup dinámico */
+                size_t vlen2 = strlen(foreach_var);
+                if (strncmp(var, foreach_var, vlen2) == 0 && var[vlen2] == '.') {
+                    const char *field = var + vlen2 + 1;
+                    fprintf(out,
+                        "    { char _fk[128]; snprintf(_fk, sizeof(_fk), \"%s_%%d_%s\", _fi);"
+                        " StrBuf_add(_sb, _html_safe(a, TemplateData_get(d, _fk))); }\n",
+                        foreach_col, field);
+                } else {
+                    fprintf(out,
+                        "    StrBuf_add(_sb, _html_safe(a, TemplateData_get(d, \"%s\")));\n",
+                        var);
+                }
             } else {
                 fprintf(out,
                     "    StrBuf_add(_sb, _html_safe(a, TemplateData_get(d, \"%s\")));\n",
@@ -241,6 +260,56 @@ static void generate_body(FILE *out, const char *content, size_t len,
                 "    StrBuf_add(_sb, \"\\\">\");\n"
             );
             p += 5;
+            text_start = p;
+            continue;
+        }
+
+        /* ── @foreach(collection, item) ────────────────────────── */
+        if (*p == '@' && (size_t)(end - p) >= 9 &&
+            strncmp(p, "@foreach(", 9) == 0) {
+            emit_text(out, text_start, (size_t)(p - text_start));
+            const char *args_start = p + 9;
+            const char *args_end   = strchr(args_start, ')');
+            if (args_end) {
+                char args[128] = {0};
+                size_t alen = (size_t)(args_end - args_start);
+                if (alen >= sizeof(args)) alen = sizeof(args) - 1;
+                strncpy(args, args_start, alen);
+                trim(args);
+                char *comma = strchr(args, ',');
+                if (comma) {
+                    *comma = '\0';
+                    char col[64] = {0}, var[64] = {0};
+                    strncpy(col, args, sizeof(col) - 1);
+                    strncpy(var, comma + 1, sizeof(var) - 1);
+                    trim(col); trim(var);
+                    strncpy(foreach_col, col, sizeof(foreach_col) - 1);
+                    strncpy(foreach_var, var, sizeof(foreach_var) - 1);
+                    in_foreach = 1;
+                    /* Genera: int _n = atoi(d["col_count"]); for (int _fi=0; _fi<_n; _fi++) { */
+                    fprintf(out,
+                        "    { const char *_cnt = TemplateData_get(d, \"%s_count\");\n"
+                        "    int _n = (_cnt && *_cnt) ? atoi(_cnt) : 0;\n"
+                        "    for (int _fi = 0; _fi < _n; _fi++) {\n",
+                        col);
+                }
+                p = args_end + 1;
+                if (*p == '\n') p++;
+                text_start = p;
+                continue;
+            }
+        }
+
+        /* ── @endforeach ────────────────────────────────────────── */
+        if (*p == '@' && (size_t)(end - p) >= 10 &&
+            strncmp(p, "@endforeach", 11) == 0) {
+            emit_text(out, text_start, (size_t)(p - text_start));
+            fprintf(out, "    } }\n");
+            in_foreach = 0;
+            foreach_col[0] = '\0';
+            foreach_var[0] = '\0';
+            p += 11;
+            if (*p == '\n') p++;
             text_start = p;
             continue;
         }
@@ -940,6 +1009,41 @@ static unsigned long long watch_scan_dir(const char *dir_path) {
     FindClose(h);
     return max_time;
 }
+#else
+/* Linux / macOS: recorre recursivamente y retorna el mtime más reciente */
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+
+static time_t watch_scan_dir(const char *dir_path) {
+    time_t max_mtime = 0;
+    DIR *dir = opendir(dir_path);
+    if (!dir) return 0;
+    struct dirent *ent;
+    while ((ent = readdir(dir)) != NULL) {
+        if (ent->d_name[0] == '.') continue;
+        char full[MAX_PATH];
+        snprintf(full, sizeof(full), "%s/%s", dir_path, ent->d_name);
+        struct stat st;
+        if (stat(full, &st) != 0) continue;
+        if (S_ISDIR(st.st_mode)) {
+            time_t t = watch_scan_dir(full);
+            if (t > max_mtime) max_mtime = t;
+        } else {
+            size_t nlen = strlen(ent->d_name);
+            int relevant =
+                (nlen > 2 && strcmp(ent->d_name + nlen - 2, ".c") == 0) ||
+                (nlen > 2 && strcmp(ent->d_name + nlen - 2, ".h") == 0) ||
+                (nlen > 5 && strcmp(ent->d_name + nlen - 5, ".html") == 0) ||
+                (nlen > 4 && strcmp(ent->d_name + nlen - 4, ".css") == 0) ||
+                (nlen > 3 && strcmp(ent->d_name + nlen - 3, ".js") == 0);
+            if (relevant && st.st_mtime > max_mtime)
+                max_mtime = st.st_mtime;
+        }
+    }
+    closedir(dir);
+    return max_mtime;
+}
 #endif
 
 /* ── main ────────────────────────────────────────────────────────────── */
@@ -985,33 +1089,46 @@ int main(int argc, char *argv[]) {
         }
         
         printf("\033[36m[clavel] Iniciando modo watch (Hot-Reload nativo)...\033[0m\n");
-        char app_dir[MAX_PATH], frm_dir[MAX_PATH];
-        snprintf(app_dir, sizeof(app_dir), "%s\\app", root);
-        snprintf(frm_dir, sizeof(frm_dir), "%s\\framework", root);
-        
-        unsigned long long last_time = 0;
-        
+        char app_dir[MAX_PATH], frm_dir[MAX_PATH], pub_dir[MAX_PATH];
 #ifdef _WIN32
+        snprintf(app_dir, sizeof(app_dir), "%s\\app",       root);
+        snprintf(frm_dir, sizeof(frm_dir), "%s\\framework", root);
+        snprintf(pub_dir, sizeof(pub_dir), "%s\\public",    root);
+#else
+        snprintf(app_dir, sizeof(app_dir), "%s/app",       root);
+        snprintf(frm_dir, sizeof(frm_dir), "%s/framework", root);
+        snprintf(pub_dir, sizeof(pub_dir), "%s/public",    root);
+#endif
+
+#ifdef _WIN32
+        unsigned long long last_time = 0;
         PROCESS_INFORMATION pi = {0};
 #else
-        pid_t child_pid = 0;
+        time_t last_time = 0;
+        pid_t  child_pid = 0;
 #endif
 
         while (1) {
-            unsigned long long t1 = 0, t2 = 0;
-            
 #ifdef _WIN32
-            t1 = watch_scan_dir(app_dir);
-            t2 = watch_scan_dir(frm_dir);
-#endif
+            unsigned long long t1 = watch_scan_dir(app_dir);
+            unsigned long long t2 = watch_scan_dir(frm_dir);
+            unsigned long long t3 = watch_scan_dir(pub_dir);
             unsigned long long current_time = t1 > t2 ? t1 : t2;
-            
+            if (t3 > current_time) current_time = t3;
+#else
+            time_t t1 = watch_scan_dir(app_dir);
+            time_t t2 = watch_scan_dir(frm_dir);
+            time_t t3 = watch_scan_dir(pub_dir);
+            time_t current_time = t1 > t2 ? t1 : t2;
+            if (t3 > current_time) current_time = t3;
+#endif
+
             if (current_time > last_time) {
                 if (last_time > 0) {
                     printf("\n\033[33m[clavel] Archivos modificados. Recompilando...\033[0m\n");
                 }
                 last_time = current_time;
-                
+
 #ifdef _WIN32
                 if (pi.hProcess) {
                     TerminateProcess(pi.hProcess, 0);
@@ -1019,20 +1136,40 @@ int main(int argc, char *argv[]) {
                     CloseHandle(pi.hThread);
                     pi.hProcess = NULL;
                 }
+#else
+                if (child_pid > 0) {
+                    kill(child_pid, SIGTERM);
+                    waitpid(child_pid, NULL, 0);
+                    child_pid = 0;
+                }
 #endif
-                
-                system("cmake --build build");
-                
+
+                system("cmake --build cmake-build");
+
                 printf("\033[32m[clavel] Lanzando servidor...\033[0m\n");
 #ifdef _WIN32
                 STARTUPINFOA si = { sizeof(si) };
-                char cmd[] = "build\\clavel_app.exe";
+                char cmd[] = "cmake-build\\clavel_app.exe";
                 CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+#else
+                child_pid = fork();
+                if (child_pid == 0) {
+                    /* Proceso hijo: ejecutar el servidor */
+                    char app_bin[MAX_PATH];
+                    snprintf(app_bin, sizeof(app_bin), "%s/cmake-build/clavel_app", root);
+                    execl(app_bin, "clavel_app", NULL);
+                    /* Si execl falla, intentar path relativo */
+                    execl("cmake-build/clavel_app", "clavel_app", NULL);
+                    fprintf(stderr, "[clavel] Error: no se pudo lanzar clavel_app\n");
+                    exit(1);
+                }
 #endif
             }
-            
+
 #ifdef _WIN32
             Sleep(500);
+#else
+            usleep(500000); /* 500 ms */
 #endif
         }
         return 0;
