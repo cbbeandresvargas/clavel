@@ -37,9 +37,10 @@ jobs:
 
       - name: Smoke test (server starts)
         run: |
-          timeout 5 ./cmake-build/clavel_app --port 19876 &
+          ./cmake-build/clavel_app --port 19876 &
+          SERVER_PID=$!
           sleep 2
           curl -sf http://localhost:19876/ | grep -q "ClaVel\|html" \
             && echo "✓ Server responded" \
-            || (echo "✗ Server did not respond" && exit 1)
-          kill %1 2>/dev/null || true
+            || { echo "✗ Server did not respond"; kill $SERVER_PID 2>/dev/null; exit 1; }
+          kill $SERVER_PID 2>/dev/null || true
