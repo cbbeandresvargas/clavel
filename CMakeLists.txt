@@ -127,8 +127,8 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(WIN32)
-    target_link_libraries(clavel_app PRIVATE ws2_32)
-    # En Windows, _stricmp está en string.h (sin lib extra)
+    # ws2_32: sockets; wldap32: required when libpq is built with LDAP support
+    target_link_libraries(clavel_app PRIVATE ws2_32 wldap32)
 endif()
 
 if(UNIX AND NOT APPLE)
