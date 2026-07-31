@@ -1,266 +1,207 @@
 # 🌸 ClaVel Framework
 
-> El "Laravel" de C. MVC batteries-included. Un binario. Decenas de miles de req/s.
+[![License: MIT](https://img.shields.io/badge/License-MIT-fuchsia.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha-violet)](CHANGELOG.md)
+[![Build](https://img.shields.io/badge/build-CMake%20%2B%20Ninja-blue)](CMakeLists.txt)
+[![Language](https://img.shields.io/badge/language-C11-orange)](https://en.wikipedia.org/wiki/C11_(C_standard_revision))
+[![Status](https://img.shields.io/badge/status-experimental-yellow)]()
 
-```c
-Route_get("/productos/{slug}", ProductoController_show);
+> Laravel's developer experience. C's performance.
+> One binary. No dependencies. Tens of thousands of req/s.
 
-void ProductoController_show(Request *req, Response *res) {
-    const char *slug = Request_param(req, "slug");
-    TemplateData *d  = TemplateData_new(req->arena);
-    TemplateData_set(d, "nombre", slug);
-    View_render(res, "productos.show", d);
-}
-```
+**[Español](README-es.md)** · [Docs](https://clavel.dev/docs) · [Blog](https://clavel.dev/blog) · [Changelog](CHANGELOG.md)
 
 ---
 
-## ⚡ Instalación del entorno de desarrollo
+ClaVel is a batteries-included MVC web framework written in C11. Router, ORM, Blade templates, CSRF, cookie sessions, form validation, and reactive UI — compiled into a single ~3 MB binary with zero runtime dependencies.
 
-### 🪟 Windows (recomendado: MSYS2)
+> **v0.1.0 — Early & Experimental.** The API may change before v1.0. Use at your own risk, and please report issues.
 
-MSYS2 instala GCC, CMake y todas las herramientas POSIX en Windows.
+## Features
 
-**Paso 1 — Instalar MSYS2**
+| | |
+|---|---|
+| ⚡ **Zero dependencies** | One binary. Mongoose HTTP server is embedded. No npm, pip, or gem. |
+| 🧠 **Arena allocator** | Per-request 1 MB memory pool. `O(1)` free. No GC pauses. |
+| 🗄️ **Chainable ORM** | Prepared statements. SQLite / PostgreSQL / MySQL. Anti-SQL injection. |
+| 🌿 **Blade templates** | Compiled to C at build time. `@if`, `@foreach`, `@csrf`, layouts. |
+| 🔒 **Auth & CSRF** | HMAC-SHA256 signed cookies. Token rotation. Flash messages. |
+| ✨ **Reactive UI** | `c-get` / `c-post` / `c-target`. View Transitions API. No SPA needed. |
+| 🛡️ **Validation** | `required \| min:N \| max:N \| email \| unique:table,col` |
+| 📦 **Migrations** | Schema in C. `up_` / `down_` pattern. Auto-run at startup. |
 
-1. Descarga el instalador desde **[msys2.org](https://www.msys2.org/)**
-2. Ejecuta el instalador y acepta los valores por defecto
-3. Al terminar, abre la terminal **MSYS2 UCRT64** (búscala en el menú Inicio)
+## Quick Start
 
-**Paso 2 — Instalar GCC + CMake + Ninja**
-
+**Linux / macOS:**
 ```bash
-# En la terminal MSYS2 UCRT64:
-pacman -Syu
-pacman -S mingw-w64-ucrt-x86_64-gcc \
-          mingw-w64-ucrt-x86_64-cmake \
-          mingw-w64-ucrt-x86_64-ninja \
-          mingw-w64-ucrt-x86_64-gdb
+curl -sS https://clavel.dev/install | bash
 ```
 
-**Paso 3 — Verificar la instalación**
-
+**Manual:**
 ```bash
-gcc --version    # → gcc (Rev...) 13.x.x
-cmake --version  # → cmake version 3.x.x
-```
-
-**Paso 4 — Agregar al PATH de Windows** *(opcional, para usar desde PowerShell)*
-
-Agrega `C:\msys64\ucrt64\bin` a las variables de entorno de Windows.
-
----
-
-### 🍎 macOS
-
-```bash
-# Instalar Xcode Command Line Tools (incluye clang y make)
-xcode-select --install
-
-# Instalar CMake y Ninja con Homebrew
-brew install cmake ninja
-```
-
----
-
-### 🐧 Linux (Ubuntu/Debian)
-
-```bash
-sudo apt update
-sudo apt install gcc cmake ninja-build
-```
-
-### 🐧 Linux (Fedora/RHEL)
-
-```bash
-sudo dnf install gcc cmake ninja-build
-```
-
----
-
-## 🚀 Primer build
-
-```bash
-# 1. Clonar / navegar al proyecto
-cd /ruta/al/proyecto/clavel   # o en MSYS2: cd /c/GH/clavel
-
-# 2. Configurar CMake (genera el sistema de build)
+git clone https://github.com/cbbeandresvargas/clavel my-app
+cd my-app
 cmake -B cmake-build -G Ninja
-
-# 3. Compilar todo (CLI → vistas → servidor)
 cmake --build cmake-build
-
-# 4. Ejecutar el servidor
-./cmake-build/clavel_app          # Linux/macOS
-./cmake-build/clavel_app.exe      # Windows (MSYS2)
+./cmake-build/clavel_app   # → http://localhost:8080
 ```
 
-El servidor arranca en **http://localhost:8080** 🎉
+**Requirements:** GCC/Clang ≥ 12, CMake ≥ 3.20, Ninja.
 
----
+## Usage
 
-## 🛠️ Flujo de desarrollo
-
-```
-app/views/*.blade.html  ──┐
-public/style.css          ├──► clavel-cli build ──► build/views.h
-public/app.js           ──┘                         build/static_assets.h
-                                                          │
-app/routes.c ────────────────────────────────────────┐    │
-framework/*.c ───────────────────────────────────────┤    │
-main.c ──────────────────────────────────────────────┴────▼
-                                                     gcc / clang
-                                                          │
-                                                          ▼
-                                                    clavel_app  (~3 MB)
-```
-
-### Reconstruir tras cambiar vistas
-
-CMake detecta automáticamente los cambios en `.blade.html` y recompila:
-
-```bash
-cmake --build cmake-build
-```
-
-### Agregar una nueva página
-
-**1. Crea la vista:**
-```bash
-# app/views/blog/index.blade.html
-```
-
-**2. Crea el controlador:**
-```c
-// app/controllers/blog_controller.h + .c
-void BlogController_index(Request *req, Response *res);
-```
-
-**3. Registra la ruta en `app/routes.c`:**
-```c
-Route_get("/blog", BlogController_index);
-```
-
-**4. Recompila:**
-```bash
-cmake --build cmake-build
-```
-
----
-
-## 📁 Estructura del proyecto
-
-```
-clavel/
-├── CMakeLists.txt              # Build system (cross-platform)
-├── main.c                      # Entrada del servidor
-│
-├── framework/                  # Core del framework
-│   ├── arena.h / arena.c       # Arena Allocator (O(1) alloc/free)
-│   ├── http.h / http.c         # Request / Response
-│   ├── router.h / router.c     # Router con {parámetros}
-│   ├── middleware.h / .c       # Stack de middlewares
-│   ├── view.h / view.c         # Sistema de vistas + TemplateData
-│   ├── strbuf.h                # String builder (header-only)
-│   └── vendor/
-│       ├── mongoose.h          # HTTP server (single-file)
-│       └── mongoose.c
-│
-├── app/                        # Tu código
-│   ├── routes.c                # 👈 Define tus rutas aquí
-│   ├── controllers/
-│   │   └── home_controller.c   # Controladores
-│   └── views/
-│       ├── layouts/
-│       │   └── app.blade.html  # Layout principal
-│       └── home/
-│           ├── index.blade.html
-│           └── about.blade.html
-│
-├── clavel-cli/                 # CLI transpilador (escrito en C)
-│   ├── clavel.c
-│   └── CMakeLists.txt
-│
-├── public/                     # Assets estáticos
-│   ├── style.css               # CSS (embebido en el binario)
-│   └── app.js                  # JS  (embebido en el binario)
-│
-└── build/                      # Generado automáticamente
-    ├── views.h                 # Vistas compiladas → funciones C
-    └── static_assets.h        # CSS/JS como strings C
-```
-
----
-
-## 🧩 Sintaxis Blade soportada
-
-| Sintaxis | Descripción |
-|----------|-------------|
-| `{{ variable }}` | Inserta con **auto-escape HTML** (anti-XSS) |
-| `{!! variable !!}` | Inserta **sin escape** (HTML crudo) |
-| `@if(var)` / `@else` / `@endif` | Bloque condicional (truthy si no es vacío/"0"/"false") |
-| `@foreach(col, item)` / `@endforeach` | Iteración — requiere `col_count` + `col_N_campo` en TemplateData |
-| `@error('campo')` / `@enderror` | Muestra mensajes de validación del campo |
-| `@csrf` | Inyecta `<input type="hidden" name="csrf_token">` |
-| `<x-layout>` / `</x-layout>` | Envuelve con el layout `layouts/app.blade.html` |
-
-### Ejemplo: `@foreach` en el controlador
+### Controller
 
 ```c
-// Controlador — pasar lista de items
-TemplateData_set(d, "products_count", "3");
-TemplateData_set(d, "products_0_name", "Laptop Pro");
-TemplateData_set(d, "products_1_name", "Teclado MX");
-TemplateData_set(d, "products_2_name", "Monitor 4K");
-```
+// app/controllers/product_controller.c
+#include <stdlib.h>
+#include "product_controller.h"
+#include "../../framework/db.h"
+#include "../../framework/view.h"
+#include "../../framework/validator.h"
 
-```html
-<!-- Vista Blade -->
-@foreach(products, product)
-  <li>{{ product.name }}</li>
-@endforeach
-```
+void ProductController_show(Request *req, Response *res) {
+    DB_set_arena(req->arena);
 
-### Ejemplo: reactividad nativa
+    const char *slug = Request_param(req, "slug");
+    QueryBuilder *qb = DB_table("products");
+    DBRow *product = qb->where(qb, "slug", "=", slug)
+                       ->where(qb, "active", "=", "1")
+                       ->first(qb);
 
-```html
-<!-- El servidor devuelve solo el fragmento si X-ClaVel-Request: true -->
-<div id="stock-badge">{{ stock }}</div>
-<button c-get="/products/1/stock" c-target="#stock-badge">
-    Revisar stock
-</button>
-```
+    if (!product) { Response_abort(res, 404); return; }
 
-```c
-// Controlador — renderizado condicional
-if (Request_is_partial(req)) {
-    View_render_partial(req, res, "components.stock", d);
-} else {
+    TemplateData *d = product;            // DBRow IS a TemplateData
+    TemplateData_set(d, "page_title", DBRow_get(product, "name"));
+
     View_render(req, res, "products.show", d);
 }
+
+void ProductController_store(Request *req, Response *res) {
+    ValidationResult val = Validator_check(req, (ValidationRule[]){
+        {"name",  "required|min:3|max:100"},
+        {"slug",  "required|min:3|unique:products,slug"},
+        {"price", "required"},
+        {NULL, NULL}
+    });
+    if (val.fails) return Response_redirect_back_with_errors(req, res, &val);
+
+    DB_set_arena(req->arena);
+    DBRow *data = DBRow_new(req->arena);
+    DBRow_set(data, "name",  Request_post(req, "name"));
+    DBRow_set(data, "slug",  Request_post(req, "slug"));
+    DBRow_set(data, "price", Request_post(req, "price"));
+    DB_table("products")->create(qb, data);
+
+    Session_flash(req, res, "success", "Product created.");
+    Response_redirect(res, "/products");
+}
 ```
 
----
+### View (Blade)
 
-## 🗺️ Hoja de ruta
+```html
+<!-- app/views/products/show.blade.html -->
+<x-layout>
 
-| Fase | Estado | Descripción |
-|------|--------|-------------|
+<h1>{{ name }}</h1>
+<p>{{ description }}</p>
+
+@if(in_stock)
+  <span>✓ In stock: {{ stock }} units</span>
+@else
+  <span>✗ Out of stock</span>
+@endif
+
+<button c-post="/cart" c-target="#cart-count">
+  Add to cart
+</button>
+
+</x-layout>
+```
+
+### Routes
+
+```c
+// app/routes.c
+void register_routes(void) {
+    Middleware_use(Middleware_logger);
+    Middleware_use(Middleware_csrf);
+
+    Route_get("/products",        ProductController_index);
+    Route_get("/products/create", ProductController_create);
+    Route_post("/products",       ProductController_store);
+    Route_get("/products/{slug}", ProductController_show);
+}
+```
+
+### Migration
+
+```c
+// app/migrations/001_create_products.c
+static void blueprint(SchemaTable *t) {
+    Table_id(t);
+    Col_unique(Table_string(t, "slug"));
+    Table_string(t, "name");
+    Col_nullable(Table_text(t, "description"));
+    Col_default(Table_string(t, "price"), "0.00");
+    Col_default(Table_integer(t, "stock"), "0");
+    Col_default(Table_integer(t, "active"), "1");
+    Table_timestamps(t);
+}
+
+void up_001_create_products(void) { Schema_create("products", blueprint); }
+void down_001_create_products(void) { Schema_dropIfExists("products"); }
+```
+
+## Project Structure
+
+```
+my-app/
+├── app/
+│   ├── routes.c              ← register routes and middleware
+│   ├── controllers/
+│   ├── views/
+│   │   ├── layouts/app.blade.html
+│   │   └── <section>/<name>.blade.html
+│   ├── migrations/
+│   └── seeders/
+├── framework/                ← ClaVel core (don't modify)
+├── public/
+│   ├── style.css             ← embedded in binary at build time
+│   └── app.js                ← reactive system
+├── config/database.h         ← choose SQLite / Postgres / MySQL
+└── CMakeLists.txt
+```
+
+## Memory Model
+
+Every HTTP request gets a 1 MB `Arena`. All allocations within the request use `Arena_alloc`, `Arena_strdup`, or `Arena_sprintf`. After the response is sent, the entire arena is freed in `O(1)`. Never hold pointers across requests. Never call `malloc`/`free` in a controller.
+
+## Roadmap
+
+| Phase | Status | Description |
+|-------|--------|-------------|
 | 1 — HTTP Core | ✅ | Arena Allocator, Request/Response, Mongoose |
-| 2 — Router | ✅ | Parámetros `{slug}`, middlewares, CORS |
-| 3 — CLI + Vistas | ✅ | Transpilador Blade→C, minificación Zero-Cost, assets embebidos |
-| 4 — ORM | ✅ | Query Builder encadenable, SQLite/PostgreSQL/MySQL, prepared statements |
-| 5 — Auth/CSRF | ✅ | Sesiones firmadas HMAC-SHA256, tokens CSRF, flash sessions |
-| 6 — Build System | ✅ | CMake + Ninja, binario único, `clavel watch` con hot-reload |
-| 7 — Reactividad | ✅ | `c-get`/`c-post`/`c-target`, `Request_is_partial()`, View Transitions |
-| 8 — Migraciones | ✅ | `Schema_create`, `Table_*`, `Col_*`, seeders, `Factory` |
-| 9 — Validación | ✅ | `Validator_check()`, reglas `required|min|max|email|unique` |
-| 10 — Config/Logs | ✅ | Parser `.env`, `Log_info/warning/error` → `storage/logs/clavel.log` |
-| 11 — Minificación | ✅ | HTML/CSS/JS minificados en tiempo de compilación por el CLI |
-| 12 — Storage | ✅ | Assets embebidos en RAM, `storage/public/` en disco con streaming |
+| 2 — Router | ✅ | `{params}`, middleware stack, CORS |
+| 3 — CLI + Views | ✅ | Blade→C transpiler, minification, embedded assets |
+| 4 — ORM | ✅ | Chainable query builder, SQLite/PostgreSQL/MySQL |
+| 5 — Auth/CSRF | ✅ | HMAC-SHA256 sessions, CSRF tokens, flash messages |
+| 6 — Build System | ✅ | CMake + Ninja, single binary, `clavel watch` |
+| 7 — Reactivity | ✅ | `c-get`/`c-post`/`c-target`, View Transitions API |
+| 8 — Migrations | ✅ | `Schema_create`, `Table_*`, `Col_*`, seeders |
+| 9 — Validation | ✅ | `Validator_check()`, `required\|min\|max\|email\|unique` |
+| 10 — Config/Logs | ✅ | `.env` parser, `Log_info/warning/error` |
+| 11 — Minification | ✅ | HTML/CSS/JS minified at compile time |
+| 12 — Storage | ✅ | Embedded assets in RAM, `storage/public/` disk streaming |
 
----
+## Contributing
 
-## 📄 Licencia
+ClaVel is MIT-licensed and very open to contributions — especially at this early stage.
 
-MIT — úsalo como quieras.
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full guide.  
+See **[CONTRIBUTING-es.md](CONTRIBUTING-es.md)** for the guide in Spanish.
+
+## License
+
+[MIT](LICENSE)
