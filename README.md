@@ -198,9 +198,47 @@ clavel/
 |----------|-------------|
 | `{{ variable }}` | Inserta con **auto-escape HTML** (anti-XSS) |
 | `{!! variable !!}` | Inserta **sin escape** (HTML crudo) |
-| `@if(var)` / `@endif` | Bloque condicional (truthy si no es vacío/"0"/"false") |
-| `@else` | Bloque alternativo |
+| `@if(var)` / `@else` / `@endif` | Bloque condicional (truthy si no es vacío/"0"/"false") |
+| `@foreach(col, item)` / `@endforeach` | Iteración — requiere `col_count` + `col_N_campo` en TemplateData |
+| `@error('campo')` / `@enderror` | Muestra mensajes de validación del campo |
+| `@csrf` | Inyecta `<input type="hidden" name="csrf_token">` |
 | `<x-layout>` / `</x-layout>` | Envuelve con el layout `layouts/app.blade.html` |
+
+### Ejemplo: `@foreach` en el controlador
+
+```c
+// Controlador — pasar lista de items
+TemplateData_set(d, "products_count", "3");
+TemplateData_set(d, "products_0_name", "Laptop Pro");
+TemplateData_set(d, "products_1_name", "Teclado MX");
+TemplateData_set(d, "products_2_name", "Monitor 4K");
+```
+
+```html
+<!-- Vista Blade -->
+@foreach(products, product)
+  <li>{{ product.name }}</li>
+@endforeach
+```
+
+### Ejemplo: reactividad nativa
+
+```html
+<!-- El servidor devuelve solo el fragmento si X-ClaVel-Request: true -->
+<div id="stock-badge">{{ stock }}</div>
+<button c-get="/products/1/stock" c-target="#stock-badge">
+    Revisar stock
+</button>
+```
+
+```c
+// Controlador — renderizado condicional
+if (Request_is_partial(req)) {
+    View_render_partial(req, res, "components.stock", d);
+} else {
+    View_render(req, res, "products.show", d);
+}
+```
 
 ---
 
@@ -209,11 +247,17 @@ clavel/
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | 1 — HTTP Core | ✅ | Arena Allocator, Request/Response, Mongoose |
-| 2 — Router | ✅ | Parámetros {slug}, middlewares, CORS |
-| 3 — CLI + Vistas | ✅ | Transpilador Blade→C, assets embebidos |
-| 4 — ORM | 🔜 | SQLite3 embebido, Query Builder encadenable |
-| 5 — Auth/CSRF | 🔜 | Sesiones, HMAC-SHA256, tokens CSRF |
-| 6 — Producción | 🔜 | Hot-reload, optimizaciones, `clavel new` |
+| 2 — Router | ✅ | Parámetros `{slug}`, middlewares, CORS |
+| 3 — CLI + Vistas | ✅ | Transpilador Blade→C, minificación Zero-Cost, assets embebidos |
+| 4 — ORM | ✅ | Query Builder encadenable, SQLite/PostgreSQL/MySQL, prepared statements |
+| 5 — Auth/CSRF | ✅ | Sesiones firmadas HMAC-SHA256, tokens CSRF, flash sessions |
+| 6 — Build System | ✅ | CMake + Ninja, binario único, `clavel watch` con hot-reload |
+| 7 — Reactividad | ✅ | `c-get`/`c-post`/`c-target`, `Request_is_partial()`, View Transitions |
+| 8 — Migraciones | ✅ | `Schema_create`, `Table_*`, `Col_*`, seeders, `Factory` |
+| 9 — Validación | ✅ | `Validator_check()`, reglas `required|min|max|email|unique` |
+| 10 — Config/Logs | ✅ | Parser `.env`, `Log_info/warning/error` → `storage/logs/clavel.log` |
+| 11 — Minificación | ✅ | HTML/CSS/JS minificados en tiempo de compilación por el CLI |
+| 12 — Storage | ✅ | Assets embebidos en RAM, `storage/public/` en disco con streaming |
 
 ---
 

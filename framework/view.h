@@ -58,8 +58,8 @@ typedef char *(*ViewFn)(Arena *arena, TemplateData *data);
 /* ── Registro global ──────────────────────────────────────────────── */
 void View_register(const char *name, ViewFn fn);
 
-/* Definida en build/views.h — registra todas las vistas compiladas */
-void Views_init(void);
+/* Definida en build/views.h — registra todas las vistas compiladas.
+ * No declarar aquí para evitar conflicto con la definición static inline. */
 
 /* ── Render ──────────────────────────────────────────────────────── */
 void View_render(Request *req, Response *res, const char *view_name, TemplateData *data);

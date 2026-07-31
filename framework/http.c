@@ -252,12 +252,6 @@ const char *Session_get_flash(Request *req, Response *res, const char *key) {
     return val;
 }
 
-void Session_inject_flash(Request *req, Response *res, void *template_data) {
-    _parse_cookies_if_needed(req);
-    /* Cannot include view.h here due to circular dep, so we pass void* 
-       Actually we can just rely on the controller or view to call it if we include view.h */
-}
-
 /* ── Storage / Uploads (Stubs) ────────────────────────────────────────── */
 UploadedFile *Request_file(Request *req, const char *form_name) {
     /* TODO: Parse multipart form-data.

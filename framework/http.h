@@ -81,6 +81,7 @@ void        Request_parse_post(Request *req);
 void Response_set_header(Response *res, const char *key, const char *val);
 void Response_html(Response *res, int status, const char *html);
 void Response_json(Response *res, int status, const char *json);
+void Response_text(Response *res, int status, const char *text);
 void Response_redirect(Response *res, const char *url);
 void Response_abort(Response *res, int status);
 
