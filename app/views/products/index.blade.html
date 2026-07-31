@@ -1,0 +1,35 @@
+<x-layout>
+
+<div class="page-header">
+  <h1>Catálogo de <span class="gradient-text">Productos</span></h1>
+  <p>{{ product_count }} productos encontrados · Demo del ORM de ClaVel</p>
+</div>
+
+<div class="container">
+  <section class="section">
+
+    @if(has_products)
+    <div class="features-grid">
+      {!! products_grid !!}
+    </div>
+    @endif
+
+    @if(has_products)
+    @endif
+
+    <div style="margin-top:3rem;padding:1.5rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <h3 style="margin-bottom:1rem;font-size:1rem">
+        ⚡ Este listado fue generado por el ORM de ClaVel:
+      </h3>
+      <pre style="font-size:.8rem;color:var(--text-muted)">DB_table("products")
+    ->where("active", "=", "1")
+    ->orderBy("name", "ASC")
+    ->get();</pre>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem">
+        Prepared statements internos · Anti SQL Injection · Arena Allocator
+      </p>
+    </div>
+  </section>
+</div>
+
+</x-layout>

@@ -1,0 +1,222 @@
+<x-layout>
+
+<!-- Hero -->
+<section class="hero">
+  <span class="hero-eyebrow">⚡ Extremadamente rápido · Binario único</span>
+  <h1 class="hero-title">
+    El <span class="gradient-text">Laravel</span><br>de C
+  </h1>
+  <p class="hero-subtitle">
+    {{ subtitle }}
+  </p>
+  <div class="hero-actions">
+    <a href="/docs" class="btn btn-primary">📖 Leer docs</a>
+    <a href="/about" class="btn btn-outline">¿Qué es ClaVel?</a>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-value">~3 MB</span>
+    <span class="stat-label">Tamaño del binario</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">50k+</span>
+    <span class="stat-label">Req/s en un solo núcleo</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">0</span>
+    <span class="stat-label">malloc() manuales</span>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="container">
+  <section class="section">
+    <h2 class="section-title">¿Por qué ClaVel?</h2>
+    <p class="section-subtitle">Velocidad de C, ergonomía de Laravel.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3 class="feature-title">Arena Allocator</h3>
+        <p class="feature-desc">
+          Un bloque de 1 MB por petición HTTP. Liberación automática al responder.
+          Cero <code>free()</code> manuales. Imposible filtrar memoria por request.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛣️</div>
+        <h3 class="feature-title">Router Dinámico</h3>
+        <p class="feature-desc">
+          Parámetros <code>{slug}</code>, verbos HTTP, y middlewares encadenables.
+          Escritura limpia con <code>Route_get("/ruta", Handler);</code>
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3 class="feature-title">Vistas Blade compiladas</h3>
+        <p class="feature-desc">
+          Escribe <code>{{ variable }}</code> y <code>@if</code>. El CLI las
+          convierte a funciones C en tiempo de build. Auto-escape HTML anti-XSS.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗄️</div>
+        <h3 class="feature-title">ORM Encadenable <span class="pill pill-purple">Próximamente</span></h3>
+        <p class="feature-desc">
+          SQLite embebido en el binario. Query builder estilo Laravel:
+          <code>DB_table("users")->where("id","=","1")->first()</code>
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3 class="feature-title">Binario único</h3>
+        <p class="feature-desc">
+          Assets CSS/JS embebidos como arrays de bytes. Sin dependencias en runtime.
+          <code>scp</code> el binario al servidor y listo.
+        </p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">Seguridad por defecto</h3>
+        <p class="feature-desc">
+          Prepared statements anti-SQLi, auto-escape anti-XSS, tokens CSRF
+          y firmado de cookies HMAC-SHA256.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code showcase -->
+  <section class="section">
+    <h2 class="section-title">Código que escribes tú</h2>
+    <p class="section-subtitle">Simple, expresivo, rápido.</p>
+
+    <div class="code-showcase">
+      <div class="code-tabs">
+        <div class="code-tab active" data-tab="routes">routes.c</div>
+        <div class="code-tab" data-tab="controller">controller.c</div>
+        <div class="code-tab" data-tab="view">vista.blade.html</div>
+      </div>
+
+      <div class="code-panel active" data-tab="routes">
+        <pre><span class="cmt">// app/routes.c — Define todas tus rutas</span>
+<span class="kw">#include</span> <span class="str">"../framework/router.h"</span>
+<span class="kw">#include</span> <span class="str">"controllers/producto_controller.h"</span>
+
+<span class="ty">void</span> <span class="fn">register_routes</span>(<span class="ty">void</span>) {
+    <span class="fn">Route_get</span>(<span class="str">"/productos"</span>,        ProductoController_index);
+    <span class="fn">Route_get</span>(<span class="str">"/productos/{slug}"</span>, ProductoController_show);
+    <span class="fn">Route_post</span>(<span class="str">"/productos"</span>,       ProductoController_store);
+}</pre>
+      </div>
+
+      <div class="code-panel" data-tab="controller">
+        <pre><span class="cmt">// app/controllers/producto_controller.c</span>
+
+<span class="ty">void</span> <span class="fn">ProductoController_show</span>(<span class="ty">Request</span> *req, <span class="ty">Response</span> *res) {
+    <span class="cmt">// 1. Parámetro de URL capturado automáticamente</span>
+    <span class="kw">const char</span> *slug = <span class="fn">Request_param</span>(req, <span class="str">"slug"</span>);
+
+    <span class="cmt">// 2. ORM encadenable (Fase 4)</span>
+    <span class="ty">Producto</span> *p = <span class="fn">DB_table</span>(<span class="str">"productos"</span>)
+                    -&gt;<span class="fn">where</span>(<span class="str">"slug"</span>, <span class="str">"="</span>, slug)
+                    -&gt;<span class="fn">first</span>();
+
+    <span class="kw">if</span> (!p) <span class="kw">return</span> <span class="fn">Response_abort</span>(res, <span class="num">404</span>);
+
+    <span class="cmt">// 3. Pasar datos a la vista Blade</span>
+    <span class="ty">TemplateData</span> *d = <span class="fn">TemplateData_new</span>(req-&gt;arena);
+    <span class="fn">TemplateData_set</span>(d, <span class="str">"nombre"</span>, p-&gt;nombre);
+    <span class="fn">TemplateData_set</span>(d, <span class="str">"precio"</span>, p-&gt;precio_str);
+    <span class="fn">View_render</span>(res, <span class="str">"productos.show"</span>, d);
+}</pre>
+      </div>
+
+      <div class="code-panel" data-tab="view">
+        <pre><span class="cmt">&lt;!-- app/views/productos/show.blade.html --&gt;</span>
+<span class="kw">&lt;x-layout&gt;</span>
+  <span class="op">&lt;h1&gt;</span>{{ nombre }}<span class="op">&lt;/h1&gt;</span>
+  <span class="op">&lt;p&gt;</span>Precio: ${{ precio }}<span class="op">&lt;/p&gt;</span>
+
+  @if(en_stock)
+    <span class="op">&lt;button</span> class=<span class="str">"btn btn-primary"</span><span class="op">&gt;</span>Comprar<span class="op">&lt;/button&gt;</span>
+  @endif
+<span class="kw">&lt;/x-layout&gt;</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section class="section">
+    <h2 class="section-title">Hoja de Ruta</h2>
+    <p class="section-subtitle">6 fases para un framework completo.</p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 1 · Días 1-2 · ✅ Completada</div>
+        <div class="timeline-title">Core HTTP y Memoria</div>
+        <ul class="timeline-items">
+          <li>Arena Allocator — cero leaks por petición</li>
+          <li>Mongoose embebido — servidor HTTP single-file</li>
+          <li>Request / Response abstractions</li>
+        </ul>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 2 · Días 3-4 · ✅ Completada</div>
+        <div class="timeline-title">Router Dinámico y Middlewares</div>
+        <ul class="timeline-items">
+          <li>Matching de parámetros {slug}</li>
+          <li>Stack de middlewares encadenables</li>
+          <li>Logger y CORS incluidos</li>
+        </ul>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 3 · Días 5-7 · ✅ Completada</div>
+        <div class="timeline-title">CLI clavel y Vistas Blade</div>
+        <ul class="timeline-items">
+          <li>Transpilador Blade → C (escrito en C)</li>
+          <li>Auto-escape HTML anti-XSS</li>
+          <li>Assets embebidos en el binario</li>
+        </ul>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 4 · Días 8-10 · 🔜 Próximo sprint</div>
+        <div class="timeline-title">Base de Datos y ORM</div>
+        <ul class="timeline-items">
+          <li>SQLite3 embebido directamente</li>
+          <li>Query Builder encadenable</li>
+          <li>Prepared statements anti-SQL Injection</li>
+        </ul>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 5 · Días 11-12</div>
+        <div class="timeline-title">Baterías Incluidas</div>
+        <ul class="timeline-items">
+          <li>Sesiones + Auth con HMAC-SHA256</li>
+          <li>Tokens CSRF en formularios POST</li>
+          <li>Upload de archivos multipart</li>
+        </ul>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-phase">Fase 6 · Día 13</div>
+        <div class="timeline-title">Build System</div>
+        <ul class="timeline-items">
+          <li>Hot-reload en desarrollo</li>
+          <li>Binario de producción optimizado</li>
+          <li>clavel new — scaffolding de proyectos</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+</x-layout>

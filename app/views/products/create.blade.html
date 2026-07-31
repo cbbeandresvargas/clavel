@@ -1,0 +1,44 @@
+<x-layout>
+
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Crear Nuevo Producto</h1>
+    
+    @if(has_errors)
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <strong>¡Error de validación!</strong> Revisa los campos a continuación.
+        </div>
+    @endif
+    
+    <form action="/products" method="POST" class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+        @csrf
+        
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2">Nombre del Producto</label>
+            <input type="text" name="name" class="w-full border p-2 rounded" placeholder="Ej. Zapatillas Nike">
+            @error('name')
+                <p class="text-red-500 text-sm mt-1">{{ message }}</p>
+            @enderror
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2">Slug (URL)</label>
+            <input type="text" name="slug" class="w-full border p-2 rounded" placeholder="zapatillas-nike">
+            @error('slug')
+                <p class="text-red-500 text-sm mt-1">{{ message }}</p>
+            @enderror
+        </div>
+        
+        <div class="mb-6">
+            <label class="block text-gray-700 font-bold mb-2">Precio ($)</label>
+            <input type="text" name="price" class="w-full border p-2 rounded" placeholder="99.99">
+            @error('price')
+                <p class="text-red-500 text-sm mt-1">{{ message }}</p>
+            @enderror
+        </div>
+        
+        <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
+            Guardar Producto
+        </button>
+        <a href="/products" class="ml-4 text-gray-600 hover:underline">Cancelar</a>
+    </form>
+</div>

@@ -1,0 +1,43 @@
+# Build artifacts
+cmake-build/
+cmake-build-*/
+build/views.h
+build/static_assets.h
+/build/*
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Compiled output
+*.exe
+*.o
+*.a
+*.dll
+*.so
+*.dylib
+clavel_app
+clavel-cli/clavel-cli
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+
+# CLion
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Storage (Dynamic Files)
+storage/database.sqlite
+storage/logs/*
+!storage/logs/.gitkeep
+storage/public/*
+!storage/public/.gitkeep

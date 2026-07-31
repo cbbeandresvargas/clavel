@@ -1,0 +1,79 @@
+<x-layout>
+
+<div class="page-header">
+  <h1><span class="gradient-text">{{ name }}</span></h1>
+  <p>{{ description }}</p>
+</div>
+
+<div class="container">
+  <section class="section">
+    <div style="max-width:640px;margin:0 auto">
+
+      <!-- Precio y stock -->
+      <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem;flex-wrap:wrap">
+        <span style="font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+          ${{ price }}
+        </span>
+        @if(in_stock)
+        <span class="pill pill-green">✓ En stock: {{ stock }} unidades</span>
+        @endif
+        @if(in_stock)
+        @else
+        <span class="pill pill-pink">✗ Sin stock</span>
+        @endif
+      </div>
+
+      <!-- Acciones -->
+      @if(in_stock)
+      <div style="display:flex;gap:1rem;margin-bottom:2.5rem;flex-wrap:wrap">
+        <button class="btn btn-primary">🛒 Agregar al carrito</button>
+        <button class="btn btn-outline">♡ Guardar</button>
+      </div>
+      @endif
+
+      <!-- Detalles del producto -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.5rem">
+        <h3 style="font-size:1rem;margin-bottom:1rem;color:var(--text-muted)">Detalles</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.6rem 0;color:var(--text-muted)">SKU / Slug</td>
+            <td style="padding:.6rem 0;font-family:var(--font-mono);color:var(--cyan)">{{ slug }}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.6rem 0;color:var(--text-muted)">Stock</td>
+            <td style="padding:.6rem 0">{{ stock }} unidades</td>
+          </tr>
+          <tr>
+            <td style="padding:.6rem 0;color:var(--text-muted)">Registrado</td>
+            <td style="padding:.6rem 0;font-size:.82rem">{{ created_at }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Cómo se obtuvo este dato -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem">
+        <h3 style="font-size:.9rem;margin-bottom:.75rem;color:var(--text-muted)">
+          ⚡ Obtenido con el ORM de ClaVel:
+        </h3>
+        <pre style="font-size:.78rem;color:var(--text-muted)">DBRow *product =
+  DB_table("products")
+    ->where("slug",   "=", slug)
+    ->where("active", "=", "1")
+    ->first();
+
+// DBRow ES un TemplateData
+View_render(res, "products.show", product);</pre>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">
+          Prepared statements · Anti SQL-Injection · Arena Allocator (0 free())
+        </p>
+      </div>
+
+      <div style="margin-top:1.5rem">
+        <a href="/products" class="btn btn-outline">← Volver al catálogo</a>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+</x-layout>

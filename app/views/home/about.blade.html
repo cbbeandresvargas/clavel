@@ -1,0 +1,85 @@
+<x-layout>
+
+<div class="page-header">
+  <h1>Sobre <span class="gradient-text">ClaVel</span> 🌸</h1>
+  <p>Un framework MVC de alto rendimiento que combina la velocidad de C con la expresividad de Laravel.</p>
+</div>
+
+<div class="container">
+  <section class="section">
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">La visión</h3>
+        <p class="feature-desc">
+          ClaVel nació de una pregunta: ¿qué pasaría si pudieras escribir
+          aplicaciones web tan fácilmente como en Laravel, pero que compilaran
+          a un binario de 3 MB listo para producción?
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <h3 class="feature-title">Cómo funciona</h3>
+        <p class="feature-desc">
+          El CLI <code>clavel</code> transpila tus vistas Blade y embebe tus
+          assets en tiempo de build. El resultado es código C nativo que
+          compila con GCC o Clang a un ejecutable autocontenido.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <h3 class="feature-title">Stack técnico</h3>
+        <p class="feature-desc">
+          Servidor HTTP con Mongoose · Arena Allocator por petición ·
+          SQLite3 embebido · Transpilador Blade-to-C · CMake cross-platform.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">El stack completo</h2>
+    <p class="section-subtitle">Todo lo que necesitas, en un solo binario.</p>
+
+    <div style="display:grid;gap:1rem;max-width:600px">
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+        <span style="font-size:1.5rem">🌐</span>
+        <div>
+          <strong>Mongoose</strong>
+          <span class="pill pill-cyan" style="margin-left:.5rem">HTTP Server</span>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-top:2px">Single-file C HTTP server con soporte WebSocket</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+        <span style="font-size:1.5rem">🧠</span>
+        <div>
+          <strong>Arena Allocator</strong>
+          <span class="pill pill-pink" style="margin-left:.5rem">Memoria</span>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-top:2px">1 MB por request, liberado en un paso. Cero leaks.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+        <span style="font-size:1.5rem">🗄️</span>
+        <div>
+          <strong>SQLite3</strong>
+          <span class="pill pill-purple" style="margin-left:.5rem">Base de Datos</span>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-top:2px">Embebido directamente. Sin servidor externo.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+        <span style="font-size:1.5rem">🔨</span>
+        <div>
+          <strong>clavel-cli</strong>
+          <span class="pill pill-green" style="margin-left:.5rem">Build Tool</span>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-top:2px">Transpila Blade → C y embebe assets en el build.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+</x-layout>

@@ -1,0 +1,13 @@
+<x-layout>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Demo de Reactividad Nativa</h1>
+    <p class="mb-4">Este contador se actualiza en el servidor, pero el navegador usa <code>ViewTransitions</code> y peticiones parciales para reemplazar solo esta caja, dando la sensación de una SPA sin cargar ni 1 KB de React.</p>
+
+    <div class="bg-gray-100 p-6 rounded-lg text-center max-w-md mx-auto" id="counter-box">
+        <h2 class="text-2xl font-bold text-blue-600 mb-2">Contador Aleatorio: {{ random_count }}</h2>
+        <button c-get="/reactive" c-target="#counter-box" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+            Actualizar (Partial Render)
+        </button>
+    </div>
+</div>
