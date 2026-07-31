@@ -1,9 +1,15 @@
 #ifdef CLAVEL_DRIVER_MYSQL
 
 #include <mysql/mysql.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* my_bool was removed in MySQL 8.0 */
+#ifndef my_bool
+typedef bool my_bool;
+#endif
 #include "mysql_driver.h"
 #include "../db.h"
 #include "../schema.h"
