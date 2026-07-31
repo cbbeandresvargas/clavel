@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y gcc cmake ninja-build libsqlite3-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+
+      - name: Configure
+        run: cmake -B cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build cmake-build
+
+      - name: Smoke test (server starts)
+        run: |
+          timeout 5 ./cmake-build/clavel_app --port 19876 &
+          sleep 2
+          curl -sf http://localhost:19876/ | grep -q "ClaVel\|html" \
+            && echo "✓ Server responded" \
+            || (echo "✗ Server did not respond" && exit 1)
+          kill %1 2>/dev/null || true

@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Build binaries on each platform ──────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: clavel_app-linux-amd64
+            cmake_flags: ""
+          - os: macos-14
+            artifact: clavel_app-macos-arm64
+            cmake_flags: ""
+          - os: macos-13
+            artifact: clavel_app-macos-amd64
+            cmake_flags: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y gcc cmake ninja-build libsqlite3-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja
+
+      - name: Configure CMake
+        run: |
+          cmake -B cmake-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            ${{ matrix.cmake_flags }}
+
+      - name: Build
+        run: cmake --build cmake-build --config Release
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          BIN="cmake-build/clavel_app"
+          cp "$BIN" "${{ matrix.artifact }}"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+  # ── Build for Windows (MSYS2) ─────────────────────────────────────
+  build-windows:
+    name: Build (Windows MSYS2)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-sqlite3
+
+      - name: Configure CMake
+        run: cmake -B cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build cmake-build --config Release
+
+      - name: Rename binary
+        run: cp cmake-build/clavel_app.exe clavel_app-windows-amd64.exe
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clavel_app-windows-amd64
+          path: clavel_app-windows-amd64.exe
+
+  # ── Create the GitHub Release ──────────────────────────────────────
+  release:
+    name: Publish Release
+    needs: [build, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Create source tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --format=tar.gz \
+            --prefix="clavel-${VERSION}/" \
+            HEAD \
+            --output "dist/clavel-${VERSION}-source.tar.gz"
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Grab the section for this version
+          NOTES=$(awk "/^## \[${VERSION}\]/,/^## \[/" CHANGELOG.md \
+            | sed '1d;$d')
+          # Write to file (multiline safe)
+          echo "$NOTES" > release_notes.md
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Flatten artifacts
+        run: |
+          # Each artifact is in its own subdirectory; flatten to dist/
+          find dist -mindepth 2 -type f -exec mv {} dist/ \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "ClaVel v${{ steps.notes.outputs.version }}"
+          body_path: release_notes.md
+          prerelease: ${{ contains(github.ref_name, '-') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          files: |
+            dist/clavel_app-linux-amd64
+            dist/clavel_app-macos-arm64
+            dist/clavel_app-macos-amd64
+            dist/clavel_app-windows-amd64.exe
+            dist/clavel-${{ steps.notes.outputs.version }}-source.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
