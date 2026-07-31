@@ -35,6 +35,9 @@ clavel-cli/clavel-cli
 # Windows
 Thumbs.db
 
+# Environment variables
+.env
+
 # Storage (Dynamic Files)
 storage/database.sqlite
 storage/logs/*
